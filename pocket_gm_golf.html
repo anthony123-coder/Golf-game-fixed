@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pocket GM Golf</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --card: #1a2332;
+    --border: #2a3544;
+    --text: #e7ecf3;
+    --muted: #8b9bb4;
+    --accent: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --gold: #f59e0b;
+    --legend: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .stats-bar span { white-space: nowrap; }
+  .stats-bar strong { color: var(--text); }
+  nav {
+    display: flex;
+    overflow-x: auto;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 62px;
+    z-index: 99;
+    -webkit-overflow-scrolling: touch;
+  }
+  nav button {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  nav button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  main { padding: 16px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .player-info { flex: 1; min-width: 0; }
+  .player-name {
+    font-weight: 600;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge.legend { background: var(--legend); color: white; }
+  .badge.ovr {
+    background: #1e3a5f;
+    color: #60a5fa;
+  }
+  .player-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .ratings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .ratings span { color: var(--muted); }
+  .ratings strong { color: var(--text); }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  button.btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  button.btn.secondary {
+    background: var(--border);
+    color: var(--text);
+  }
+  button.btn.danger {
+    background: var(--red);
+  }
+  button.btn.green {
+    background: var(--green);
+  }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 20px;
+  }
+  .search-box {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .filter-row button {
+    background: var(--border);
+    border: none;
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .filter-row button.active {
+    background: var(--accent);
+    color: white;
+  }
+  .result-line {
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .result-line.you {
+    background: rgba(59, 130, 246, 0.15);
+    margin: 0 -14px;
+    padding: 6px 14px;
+  }
+  .pos { color: var(--muted); min-width: 28px; }
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 16px;
+    right: 16px;
+    background: #1e293b;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    z-index: 200;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 16px 0 8px;
+  }
+  .big-stat {
+    text-align: center;
+    padding: 20px;
+  }
+  .big-stat .num {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .big-stat .label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 300;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal h3 { margin-bottom: 12px; }
+  .modal .btn { width: 100%; margin-top: 8px; padding: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⛳ Pocket GM Golf</h1>
+  <div class="stats-bar">
+    <span>Season <strong id="hdr-season">1</strong></span>
+    <span>Budget <strong id="hdr-budget">$45,000k</strong></span>
+    <span>Roster <strong id="hdr-roster">0/4</strong></span>
+    <span>Pts <strong id="hdr-pts">0</strong></span>
+  </div>
+</header>
+
+<nav id="nav">
+  <button class="active" data-panel="roster">Roster</button>
+  <button data-panel="free">Free Agents</button>
+  <button data-panel="legends">Legends</button>
+  <button data-panel="season">Season</button>
+  <button data-panel="career">Career</button>
+</nav>
+
+<main>
+  <!-- ROSTER -->
+  <div id="panel-roster" class="panel active">
+    <div id="roster-list"></div>
+    <div id="roster-empty" class="empty">No players yet.<br>Go to Free Agents or Legends to sign.</div>
+  </div>
+
+  <!-- FREE AGENTS -->
+  <div id="panel-free" class="panel">
+    <input type="text" class="search-box" id="search-free" placeholder="Search players...">
+    <div class="filter-row">
+      <button class="active" data-sort="ovr">Overall</button>
+      <button data-sort="salary">Salary</button>
+      <button data-sort="age">Age</button>
+    </div>
+    <div id="free-list"></div>
+  </div>
+
+  <!-- LEGENDS -->
+  <div id="panel-legends" class="panel">
+    <div id="legend-list"></div>
+  </div>
+
+  <!-- SEASON -->
+  <div id="panel-season" class="panel">
+    <div class="card">
+      <p style="margin-bottom:12px;color:var(--muted);font-size:13px;">
+        Run a full season of majors + regular events. Players age, contracts tick down, form changes.
+      </p>
+      <button class="btn green" id="btn-run-season" style="width:100%;padding:14px;font-size:15px;">
+        Run Full Season
+      </button>
+      <button class="btn secondary" id="btn-quick-sim" style="width:100%;padding:12px;margin-top:8px;">
+        Quick Tournament
+      </button>
+    </div>
+    <div id="season-results"></div>
+  </div>
+
+  <!-- CAREER -->
+  <div id="panel-career" class="panel">
+    <div class="grid-2">
+      <div class="card big-stat">
+        <div class="num" id="career-pts">0</div>
+        <div class="label">Career Points</div>
+      </div>
+      <div class="card big-stat">
+        <div class="num" id="career-money">$0k</div>
+        <div class="label">Career Earnings</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="section-title" style="margin-top:0;">Current Season</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:var(--muted)">Season</span>
+        <strong id="career-season">1</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:var(--muted)">Budget Remaining</span>
+        <strong id="career-budget">$45,000k</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--muted)">Roster Salary</span>
+        <strong id="career-salary">$0k</strong>
+      </div>
+    </div>
+    <button class="btn secondary" id="btn-reset" style="width:100%;margin-top:16px;">Reset Career</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Sign Player</h3>
+    <div id="modal-body"></div>
+    <button class="btn" id="modal-confirm">Confirm</button>
+    <button class="btn secondary" id="modal-cancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const CURRENT = [
+  ["Scottie Scheffler",30,97,92,96,93,94,96,95,18000,98],
+  ["Rory McIlroy",37,94,97,91,88,90,93,89,16000,95],
+  ["Jon Rahm",32,93,94,93,90,89,94,91,15000,95],
+  ["Xander Schauffele",33,91,89,93,91,92,90,92,12000,93],
+  ["Collin Morikawa",29,90,84,97,89,91,88,93,11000,94],
+  ["Viktor Hovland",29,89,90,92,87,88,87,90,10000,93],
+  ["Ludvig Åberg",27,88,93,89,86,87,85,88,9500,96],
+  ["Matt Fitzpatrick",32,88,85,91,90,92,89,91,9000,90],
+  ["Wyndham Clark",33,87,94,86,85,88,86,84,8500,89],
+  ["Cameron Young",29,87,96,88,84,85,84,86,8000,92],
+  ["Tommy Fleetwood",35,86,88,90,89,90,88,89,7500,88],
+  ["Patrick Cantlay",34,86,87,91,88,89,90,90,8000,88],
+  ["Justin Thomas",33,85,89,90,87,88,87,85,7000,90],
+  ["Hideki Matsuyama",34,85,86,93,90,87,86,88,7000,88],
+  ["Sam Burns",30,84,90,87,86,89,85,86,6500,88],
+  ["Russell Henley",37,84,83,90,91,92,87,90,6000,85],
+  ["Si Woo Kim",31,83,87,88,87,86,85,87,5500,86],
+  ["Bryson DeChambeau",33,83,98,85,82,84,88,82,9000,87],
+  ["Tyrrell Hatton",35,82,86,89,88,85,90,84,5500,85],
+  ["Min Woo Lee",28,82,93,85,84,85,83,84,5000,90],
+  ["Tom Kim",24,81,88,87,85,86,84,85,4800,92],
+  ["Jordan Spieth",33,81,85,88,90,91,86,83,5500,86],
+  ["Shane Lowry",39,80,86,87,88,87,89,86,4500,82],
+  ["Adam Scott",46,79,87,88,85,86,85,84,4000,80],
+  ["Justin Rose",46,79,84,88,87,88,86,85,3800,80],
+  ["Brooks Koepka",36,80,91,86,83,84,90,81,6000,84],
+  ["Joaquin Niemann",28,81,92,86,84,83,85,84,5200,89],
+  ["Akshay Bhatia",24,80,89,86,85,86,82,84,4500,91],
+  ["Sepp Straka",33,79,85,87,86,88,84,87,4200,84],
+  ["Robert MacIntyre",30,79,88,85,86,85,84,85,4000,86],
+  ["Aaron Rai",30,78,82,89,87,88,83,88,3800,85],
+  ["Chris Gotterup",27,80,91,84,83,85,82,83,4300,90],
+  ["J.J. Spaun",36,78,84,87,86,87,85,86,3600,82],
+  ["Ryan Fox",39,77,89,84,83,84,83,82,3400,80],
+  ["Patrick Reed",36,77,85,86,88,85,87,82,3800,81],
+  ["Rickie Fowler",37,76,86,85,86,87,83,82,3200,80],
+  ["Max Homa",35,75,85,84,85,86,84,81,3000,82],
+  ["Sungjae Im",28,78,84,88,87,86,83,86,3700,86],
+  ["Corey Conners",34,77,83,90,85,84,82,87,3400,83],
+  ["Sahith Theegala",28,77,87,85,86,85,83,83,3600,87],
+  ["Tony Finau",37,76,92,84,83,84,82,81,3500,81],
+  ["Brian Harman",39,75,80,86,88,89,84,86,2800,79],
+  ["Denny McCarthy",33,75,81,85,87,90,83,85,2700,82],
+  ["Keegan Bradley",40,74,86,85,84,83,85,82,2600,78],
+  ["Jason Day",39,74,85,84,86,85,82,80,2500,79],
+  ["Jacob Bridgeman",26,79,88,85,84,86,81,83,3200,88],
+  ["Michael Brennan",25,78,90,84,83,84,80,82,3000,89],
+  ["Ryan Gerard",27,77,86,85,84,85,81,83,2900,86],
+  ["Ben Griffin",29,76,84,86,85,86,82,84,2700,84],
+  ["Nicolai Højgaard",25,77,91,84,82,83,81,82,3100,90],
+  ["Rasmus Højgaard",25,76,89,84,83,84,80,82,2900,89],
+  ["Harris English",37,74,83,85,86,87,83,84,2500,78],
+  ["Maverick McNealy",30,75,85,85,84,85,82,83,2600,83],
+  ["Kurt Kitayama",33,74,86,85,83,84,81,82,2400,81],
+  ["J.T. Poston",33,74,83,85,85,86,82,84,2400,80],
+  ["Gary Woodland",42,73,90,83,81,82,80,79,2200,76],
+  ["Bud Cauley",36,73,84,84,84,85,81,82,2100,78],
+  ["Alex Smalley",29,73,85,84,83,84,80,82,2100,83],
+  ["Davis Thompson",27,75,87,84,83,84,81,82,2500,86],
+  ["Nick Taylor",38,72,81,84,85,86,82,84,1900,76],
+  ["Eric Cole",36,72,82,84,85,86,81,83,1900,77],
+  ["Stephan Jaeger",37,72,84,84,83,83,80,82,1800,76],
+  ["Matt McCarty",26,74,86,84,83,84,80,82,2300,87],
+  ["Aldrich Potgieter",22,76,97,82,80,81,78,80,2800,93],
+  ["Blades Brown",24,73,88,83,82,83,79,81,2000,88],
+];
+
+const LEGENDS = [
+  ["Tiger Woods",50,96,95,94,93,95,98,92,20000,99],
+  ["Jack Nicklaus",86,95,90,95,92,93,97,94,15000,99],
+  ["Ben Hogan",80,94,88,98,90,91,95,96,12000,98],
+  ["Arnold Palmer",80,90,92,88,89,87,94,88,10000,95],
+  ["Sam Snead",80,91,93,89,90,90,90,91,9000,96],
+  ["Bobby Jones",80,93,89,94,91,92,96,93,11000,98],
+  ["Gary Player",80,89,87,90,91,90,93,92,8000,94],
+  ["Tom Watson",76,88,88,89,90,91,92,89,7500,93],
+  ["Seve Ballesteros",69,90,89,87,95,88,94,86,8500,95],
+  ["Phil Mickelson",56,84,88,86,93,89,90,82,6000,90],
+  ["Ernie Els",56,83,91,87,86,87,88,85,5000,88],
+  ["Nick Faldo",69,87,84,92,88,90,91,90,7000,92],
+  ["Lee Trevino",80,88,85,91,92,91,90,89,6500,93],
+  ["Greg Norman",71,86,94,88,85,86,89,84,6000,91],
+  ["Payne Stewart",63,85,87,88,89,90,91,87,5500,90],
+];
+
+function makePlayer(arr, isLegend) {
+  return {
+    id: Math.random().toString(36).slice(2,10),
+    name: arr[0], age: arr[1], overall: arr[2],
+    driving: arr[3], approach: arr[4], shortGame: arr[5],
+    putting: arr[6], mental: arr[7], consistency: arr[8],
+    salary: arr[9], potential: arr[10],
+    form: 45 + Math.floor(Math.random()*25),
+    contractYears: isLegend ? 1 : (1 + Math.floor(Math.random()*2)),
+    isLegend, team: null
+  };
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let allPlayers = [];
+let freeAgents = [];
+let roster = [];
+let budget = 45000;
+const SALARY_CAP = 50000;
+let season = 1;
+let careerPoints = 0;
+let careerMoney = 0;
+let freeSort = "ovr";
+let freeSearch = "";
+
+function init() {
+  allPlayers = [];
+  CURRENT.forEach(a => allPlayers.push(makePlayer(a, false)));
+  LEGENDS.forEach(a => allPlayers.push(makePlayer(a, true)));
+  freeAgents = [...allPlayers];
+  roster = [];
+  budget = 45000;
+  season = 1;
+  careerPoints = 0;
+  careerMoney = 0;
+  // Seed a few mid-tier AI-style removals so top guys aren't all free
+  const mid = freeAgents.filter(p => !p.isLegend && p.overall >= 74 && p.overall <= 82);
+  mid.sort(() => Math.random()-0.5);
+  mid.slice(0, 20).forEach(p => {
+    p.team = "AI";
+    freeAgents = freeAgents.filter(x => x.id !== p.id);
+  });
+  render();
+}
+
+// ============================================================
+// SIM ENGINE
+// ============================================================
+function simRound(p) {
+  const skill = (
+    p.driving*0.18 + p.approach*0.25 + p.shortGame*0.18 +
+    p.putting*0.22 + p.mental*0.10 + p.consistency*0.07
+  ) / 100;
+  const formMod = (p.form - 50) / 100;
+  let expected = 6.5 - (skill * 11.0) - (formMod * 2.5);
+  const variance = 3.8 - (p.consistency/100 * 2.2);
+  // Box-Muller
+  const u1 = Math.random(), u2 = Math.random();
+  const noise = Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2) * variance;
+  let score = 72 + Math.round(expected + noise);
+  return Math.max(59, Math.min(90, score));
+}
+
+function simTournament(name, isMajor, fieldSize=55) {
+  let field = [...roster];
+  const others = allPlayers.filter(p => !roster.find(r => r.id === p.id));
+  others.sort(() => Math.random()-0.5);
+  field = field.concat(others.slice(0, fieldSize - field.length));
+
+  const results = field.map(p => {
+    const rounds = [simRound(p), simRound(p), simRound(p), simRound(p)];
+    const total = rounds.reduce((a,b)=>a+b,0);
+    return { player: p, rounds, total, toPar: total - 288 };
+  });
+  results.sort((a,b) => a.total - b.total);
+
+  results.forEach((r,i) => {
+    r.pos = i+1;
+    if (i===0) { r.points = isMajor?150:100; r.money = isMajor?3500:1800; }
+    else if (i===1) { r.points = isMajor?90:60; r.money = isMajor?2000:1000; }
+    else if (i===2) { r.points = isMajor?60:40; r.money = isMajor?1200:600; }
+    else if (i<10) { r.points = Math.max(5,30-i*2); r.money = Math.max(50,400-i*30); }
+    else if (i<25) { r.points = Math.max(1,12-(i-10)); r.money = Math.max(20,150-(i-10)*5); }
+    else { r.points = 0; r.money = 10; }
+  });
+  return { name, isMajor, results };
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function remainingBudget() {
+  return budget - roster.reduce((s,p)=>s+p.salary,0);
+}
+
+function signPlayer(p, years=1) {
+  if (roster.length >= 4) { toast("Roster full (max 4)"); return false; }
+  if (remainingBudget() < p.salary) { toast(`Need $${p.salary}k, have $${remainingBudget()}k`); return false; }
+  p.team = "You";
+  p.contractYears = years;
+  roster.push(p);
+  freeAgents = freeAgents.filter(x => x.id !== p.id);
+  toast(`Signed ${p.name} (${years}yr)`);
+  render();
+  return true;
+}
+
+function releasePlayer(p) {
+  p.team = null;
+  p.contractYears = 0;
+  roster = roster.filter(x => x.id !== p.id);
+  freeAgents.push(p);
+  toast(`Released ${p.name}`);
+  render();
+}
+
+function runSeason() {
+  if (roster.length < 2) { toast("Need at least 2 players"); return; }
+  const majors = ["The Masters","PGA Championship","U.S. Open","The Open Championship"];
+  const regs = ["The Players","Arnold Palmer Inv.","Memorial","Travelers","Rocket Mortgage",
+                "Scottish Open","BMW Championship","Tour Championship","Genesis","Honda Classic"];
+  let events = [...majors, ...regs.sort(()=>Math.random()-0.5).slice(0,6)];
+  events.sort(()=>Math.random()-0.5);
+
+  let seasonPts = 0, seasonMoney = 0;
+  let html = `<div class="section-title">Season ${season} Results</div>`;
+
+  events.forEach((ename, idx) => {
+    const isMajor = majors.includes(ename);
+    const t = simTournament(ename, isMajor);
+    html += `<div class="card"><strong>${ename}${isMajor?" ★":""}</strong>`;
+    // User players
+    const yours = t.results.filter(r => roster.find(p => p.id === r.player.id));
+    yours.forEach(r => {
+      seasonPts += r.points;
+      seasonMoney += r.money;
+      // form
+      if (r.pos <= 5) r.player.form = Math.min(95, r.player.form + 3 + Math.floor(Math.random()*6));
+      else if (r.pos <= 20) r.player.form = Math.min(90, r.player.form + Math.floor(Math.random()*3));
+      else if (r.pos >= 40) r.player.form = Math.max(25, r.player.form - 2 - Math.floor(Math.random()*5));
+      html += `<div class="result-line you">
+        <span><span class="pos">#${r.pos}</span> ${r.player.name}</span>
+        <span>${r.total} (${r.toPar>=0?"+":""}${r.toPar}) · ${r.points}pts</span>
+      </div>`;
+    });
+    const w = t.results[0];
+    html += `<div class="result-line" style="color:var(--muted);font-size:12px;">
+      Winner: ${w.player.name} ${w.total}
+    </div></div>`;
+  });
+
+  careerPoints += seasonPts;
+  careerMoney += seasonMoney;
+
+  // End of season
+  roster.forEach(p => {
+    p.age += 1;
+    p.contractYears -= 1;
+    if (p.age > 35 && !p.isLegend) {
+      const d = Math.floor(Math.random()*3);
+      p.overall = Math.max(60, p.overall - d);
+      p.driving = Math.max(60, p.driving - d);
+    }
+    if (p.age < 28 && p.overall < p.potential && Math.random() < 0.4) {
+      p.overall = Math.min(p.potential, p.overall + 1 + Math.floor(Math.random()*2));
+    }
+  });
+  // Expire contracts
+  const expired = roster.filter(p => p.contractYears <= 0);
+  expired.forEach(p => releasePlayer(p));
+
+  season += 1;
+  freeAgents.forEach(p => p.form = 40 + Math.floor(Math.random()*30));
+
+  html = `<div class="card" style="border-color:var(--green);">
+    <strong>Season Complete</strong><br>
+    Points: ${seasonPts} · Earnings: $${seasonMoney}k
+  </div>` + html;
+
+  document.getElementById("season-results").innerHTML = html;
+  render();
+  toast(`Season done! +${seasonPts} pts, $${seasonMoney}k`);
+}
+
+function quickSim() {
+  if (!roster.length) { toast("Sign players first"); return; }
+  const t = simTournament("Quick Event", false, 50);
+  let html = `<div class="section-title">Quick Tournament — Top 15</div><div class="card">`;
+  t.results.slice(0,15).forEach(r => {
+    const you = roster.find(p => p.id === r.player.id);
+    html += `<div class="result-line ${you?"you":""}">
+      <span><span class="pos">#${r.pos}</span> ${r.player.name}${r.player.isLegend?" ★":""}</span>
+      <span>${r.total} (${r.toPar>=0?"+":""}${r.toPar})</span>
+    </div>`;
+  });
+  html += `</div><div class="section-title">Your Players</div><div class="card">`;
+  t.results.filter(r => roster.find(p => p.id === r.player.id)).forEach(r => {
+    html += `<div class="result-line you">
+      <span>#${r.pos} ${r.player.name}</span>
+      <span>${r.total} · [${r.rounds.join(", ")}]</span>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById("season-results").innerHTML = html;
+  document.querySelector('[data-panel="season"]').click();
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function playerCard(p, showSign, showRelease) {
+  const ovrColor = p.overall >= 90 ? "#22c55e" : p.overall >= 82 ? "#3b82f6" : "#8b9bb4";
+  return `
+  <div class="card">
+    <div class="player-row">
+      <div class="player-info">
+        <div class="player-name">
+          ${p.name}
+          ${p.isLegend ? '<span class="badge legend">LEGEND</span>' : ''}
+          <span class="badge ovr" style="background:${ovrColor}22;color:${ovrColor}">${p.overall}</span>
+        </div>
+        <div class="player-meta">Age ${p.age} · $${p.salary}k/yr · Form ${p.form}${p.contractYears ? ` · ${p.contractYears}yr left` : ''}</div>
+        <div class="ratings">
+          <span>Drv <strong>${p.driving}</strong></span>
+          <span>App <strong>${p.approach}</strong></span>
+          <span>SG <strong>${p.shortGame}</strong></span>
+          <span>Put <strong>${p.putting}</strong></span>
+          <span>Men <strong>${p.mental}</strong></span>
+          <span>Con <strong>${p.consistency}</strong></span>
+        </div>
+      </div>
+      <div class="actions">
+        ${showSign ? `<button class="btn" onclick="openSign('${p.id}')">Sign</button>` : ''}
+        ${showRelease ? `<button class="btn danger" onclick="releaseById('${p.id}')">Cut</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  // Header
+  document.getElementById("hdr-season").textContent = season;
+  document.getElementById("hdr-budget").textContent = "$" + remainingBudget().toLocaleString() + "k";
+  document.getElementById("hdr-roster").textContent = roster.length + "/4";
+  document.getElementById("hdr-pts").textContent = careerPoints;
+
+  // Roster
+  const rl = document.getElementById("roster-list");
+  const re = document.getElementById("roster-empty");
+  if (!roster.length) {
+    rl.innerHTML = "";
+    re.style.display = "block";
+  } else {
+    re.style.display = "none";
+    rl.innerHTML = roster.map(p => playerCard(p, false, true)).join("");
+  }
+
+  // Free agents
+  let fas = freeAgents.filter(p => !p.isLegend);
+  if (freeSearch) {
+    const q = freeSearch.toLowerCase();
+    fas = fas.filter(p => p.name.toLowerCase().includes(q));
+  }
+  if (freeSort === "ovr") fas.sort((a,b) => b.overall - a.overall);
+  else if (freeSort === "salary") fas.sort((a,b) => a.salary - b.salary);
+  else if (freeSort === "age") fas.sort((a,b) => a.age - b.age);
+  document.getElementById("free-list").innerHTML = fas.slice(0,50).map(p => playerCard(p, true, false)).join("") || '<div class="empty">No players found</div>';
+
+  // Legends
+  const legs = freeAgents.filter(p => p.isLegend).sort((a,b)=>b.overall-a.overall);
+  document.getElementById("legend-list").innerHTML = legs.map(p => playerCard(p, true, false)).join("") || '<div class="empty">No legends available</div>';
+
+  // Career
+  document.getElementById("career-pts").textContent = careerPoints;
+  document.getElementById("career-money").textContent = "$" + careerMoney.toLocaleString() + "k";
+  document.getElementById("career-season").textContent = season;
+  document.getElementById("career-budget").textContent = "$" + remainingBudget().toLocaleString() + "k";
+  document.getElementById("career-salary").textContent = "$" + roster.reduce((s,p)=>s+p.salary,0).toLocaleString() + "k";
+}
+
+function releaseById(id) {
+  const p = roster.find(x => x.id === id);
+  if (p) releasePlayer(p);
+}
+
+let pendingSign = null;
+function openSign(id) {
+  const p = freeAgents.find(x => x.id === id);
+  if (!p) return;
+  pendingSign = p;
+  document.getElementById("modal-title").textContent = "Sign " + p.name;
+  document.getElementById("modal-body").innerHTML = `
+    <p style="color:var(--muted);margin-bottom:12px;">
+      OVR ${p.overall} · $${p.salary}k per year<br>
+      Remaining budget: $${remainingBudget()}k
+    </p>
+    <label style="font-size:13px;color:var(--muted);">Contract length</label>
+    <select id="sign-years" style="width:100%;margin-top:6px;padding:10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:15px;">
+      <option value="1">1 year</option>
+      <option value="2">2 years</option>
+      <option value="3">3 years</option>
+    </select>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+document.getElementById("modal-confirm").onclick = () => {
+  if (pendingSign) {
+    const years = parseInt(document.getElementById("sign-years").value) || 1;
+    signPlayer(pendingSign, years);
+  }
+  document.getElementById("modal").classList.remove("show");
+  pendingSign = null;
+};
+document.getElementById("modal-cancel").onclick = () => {
+  document.getElementById("modal").classList.remove("show");
+  pendingSign = null;
+};
+
+// Nav
+document.querySelectorAll("nav button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + btn.dataset.panel).classList.add("active");
+  });
+});
+
+// Filters
+document.querySelectorAll(".filter-row button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-row button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    freeSort = btn.dataset.sort;
+    render();
+  });
+});
+
+document.getElementById("search-free").addEventListener("input", e => {
+  freeSearch = e.target.value;
+  render();
+});
+
+document.getElementById("btn-run-season").onclick = runSeason;
+document.getElementById("btn-quick-sim").onclick = quickSim;
+document.getElementById("btn-reset").onclick = () => {
+  if (confirm("Reset entire career?")) init();
+};
+
+// Start
+init();
+</script>
+</body>
+</html>
